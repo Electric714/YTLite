@@ -1,0 +1,91 @@
+name: Build dylib
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install make git perl python coreutils
+          brew install ldid || echo "ldid not available via Homebrew; continuing"
+
+      - name: Set up Theos
+        run: |
+          if [ -n "${THEOS:-}" ] && [ -d "$THEOS" ]; then
+            echo "Using preconfigured THEOS at $THEOS"
+            echo "THEOS=$THEOS" >> "$GITHUB_ENV"
+          elif [ -d "$GITHUB_WORKSPACE/theos" ]; then
+            echo "Using existing repo-local Theos at $GITHUB_WORKSPACE/theos"
+            echo "THEOS=$GITHUB_WORKSPACE/theos" >> "$GITHUB_ENV"
+          else
+            echo "Cloning Theos into $GITHUB_WORKSPACE/theos"
+            git clone --depth 1 --branch master https://github.com/theos/theos.git "$GITHUB_WORKSPACE/theos"
+            echo "THEOS=$GITHUB_WORKSPACE/theos" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build tweak
+        env:
+          THEOS: ${{ env.THEOS }}
+        run: |
+          echo "THEOS path: $THEOS"
+          xcodebuild -version
+          make clean
+          make
+
+      - name: Locate build outputs
+        id: locate
+        run: |
+          echo "THEOS path: ${THEOS:-<unset>}"
+          echo "Listing expected build output directories"
+          ls -la .theos || true
+          ls -la .theos/obj || true
+          ls -la .theos/obj/debug || true
+          echo "Searching for dylibs"
+          find . -maxdepth 5 -name "*.dylib" -print | tee dylibs.txt
+          echo "Searching for debs"
+          find . -maxdepth 5 -name "*.deb" -print | tee debs.txt
+
+          if [ ! -s dylibs.txt ]; then
+            echo "No .dylib files found. Searched directories: ., ./.theos, ./.theos/obj, ./.theos/obj/debug"
+            exit 1
+          fi
+
+          mkdir -p artifacts/dylib artifacts/deb
+          while IFS= read -r file; do
+            cp "$file" artifacts/dylib/
+          done < dylibs.txt
+
+          if [ -s debs.txt ]; then
+            while IFS= read -r file; do
+              cp "$file" artifacts/deb/
+            done < debs.txt
+            echo "has_deb=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_deb=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload dylib artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dylib
+          path: artifacts/dylib/*.dylib
+          if-no-files-found: error
+
+      - name: Upload deb artifact
+        if: steps.locate.outputs.has_deb == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: artifacts/deb/*.deb
+          if-no-files-found: error
