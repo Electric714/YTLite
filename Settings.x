@@ -1,4 +1,5 @@
 #import "YTLite.h"
+#import "YTNotesListViewController.h"
 
 @interface YTSettingsSectionItemManager (YTLite)
 - (void)updateYTLiteSectionWithEntry:(id)entry;
@@ -296,6 +297,20 @@ static NSString *GetCacheSize() {
     }];
 
     [sectionItems addObject:tabbar];
+
+    // Added Notes entry in the YTLite settings section; pushes a UIKit controller via the existing settings navigation stack.
+    YTSettingsSectionItem *notes = [YTSettingsSectionItemClass itemWithTitle:@"Notes"
+    accessibilityIdentifier:@"YTLiteSectionItem"
+    detailTextBlock:^NSString *() {
+        return @"‣";
+    }
+    selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+        YTNotesListViewController *notesController = [[YTNotesListViewController alloc] initWithStyle:UITableViewStyleInsetGrouped];
+        [settingsViewController pushViewController:notesController];
+        return YES;
+    }];
+
+    [sectionItems addObject:notes];
 
     if (ytlBool(@"advancedMode")) {
         YTSettingsSectionItem *other = [YTSettingsSectionItemClass itemWithTitle:LOC(@"Other")
