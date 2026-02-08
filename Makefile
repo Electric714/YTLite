@@ -8,7 +8,8 @@ DEBUG=0
 FINALPACKAGE=1
 ARCHS = arm64
 PACKAGE_VERSION = 3.0.1
-TARGET := iphone:clang:16.5:13.0
+SDKVERSION ?= $(shell xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo 16.5)
+TARGET ?= iphone:clang:$(SDKVERSION):13.0
 
 include $(THEOS)/makefiles/common.mk
 
