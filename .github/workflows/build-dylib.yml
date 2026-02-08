@@ -34,6 +34,19 @@ jobs:
             echo "THEOS=$GITHUB_WORKSPACE/theos" >> "$GITHUB_ENV"
           fi
 
+      - name: Initialize Theos vendor directories
+        env:
+          THEOS: ${{ env.THEOS }}
+        run: |
+          if [ ! -d "$THEOS/vendor/include" ] || [ ! -d "$THEOS/vendor/lib" ]; then
+            chmod +x "$THEOS/bin/update-theos"
+            "$THEOS/bin/update-theos"
+          fi
+
+          ls -la "$THEOS/vendor" || true
+          ls -la "$THEOS/vendor/include" || true
+          ls -la "$THEOS/vendor/lib" || true
+
       - name: Build tweak
         env:
           THEOS: ${{ env.THEOS }}

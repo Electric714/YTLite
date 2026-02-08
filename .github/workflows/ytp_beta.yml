@@ -135,6 +135,21 @@ jobs:
           path: ${{ github.workspace }}/theos
           submodules: recursive
 
+
+      - name: Initialize Theos vendor directories
+        if: ${{ inputs.enable_youpip || inputs.enable_ytuhd || inputs.enable_yq || inputs.enable_ryd || inputs.enable_demc }}
+        env:
+          THEOS: ${{ github.workspace }}/theos
+        run: |
+          if [ ! -d "$THEOS/vendor/include" ] || [ ! -d "$THEOS/vendor/lib" ]; then
+            chmod +x "$THEOS/bin/update-theos"
+            "$THEOS/bin/update-theos"
+          fi
+
+          ls -la "$THEOS/vendor" || true
+          ls -la "$THEOS/vendor/include" || true
+          ls -la "$THEOS/vendor/lib" || true
+
       - name: Detect and export iPhoneOS SDK for Theos
         if: ${{ inputs.enable_youpip || inputs.enable_ytuhd || inputs.enable_yq || inputs.enable_ryd || inputs.enable_demc }}
         run: |
