@@ -38,11 +38,12 @@ jobs:
         env:
           THEOS: ${{ env.THEOS }}
         run: |
-          if [ ! -d "$THEOS/vendor/include" ] || [ ! -d "$THEOS/vendor/lib" ]; then
+          if [ ! -f "$THEOS/vendor/include/substrate.h" ] || [ ! -e "$THEOS/vendor/lib" ] || [ -z "$(ls -A "$THEOS/vendor/lib" 2>/dev/null)" ]; then
             chmod +x "$THEOS/bin/update-theos"
             "$THEOS/bin/update-theos"
           fi
 
+          echo "THEOS=$THEOS"
           ls -la "$THEOS/vendor" || true
           ls -la "$THEOS/vendor/include" || true
           ls -la "$THEOS/vendor/lib" || true
